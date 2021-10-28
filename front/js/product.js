@@ -1,3 +1,5 @@
+import { getCart, fetchProduct } from "./shared.js";
+
 const params = new URLSearchParams(window.location.search);
 const id = params.get('id');
 
@@ -14,13 +16,9 @@ initPage();
 
 // On récupère ici l'api des produits
 function initPage() {
-    fetch(`http://localhost:3000/api/products/${id}`)
-        .then(function(res) {
-            if (res.ok) {
-                return res.json();
-            }
-        })
 
+    fetchProduct(id)
+        // On récupère les valeurs de l'api du produit
         .then(function(value) {
             pageProduct(value);
             imgProduct(value);
@@ -28,13 +26,10 @@ function initPage() {
             descriptionProduct(value);
             updateColors(value.colors);
         })
-        
-        .catch(function(err) {
-            console.error('There is an error on the request.');
-        });
 
 }
 
+// On appelle les id depuis l'html, pour définir leur nouvelle valeur depuis le DOM
 function pageProduct(product) {
     const elt = document.querySelector('#title');
     elt.innerHTML = product.name;
@@ -45,7 +40,6 @@ function imgProduct(product) {
     elt.innerHTML = `<img src="${product.imageUrl}" alt="${product.altTxt}">`;
 }
 
-
 function priceProduct(product) {
     const elt = document.querySelector('#price');
     elt.innerHTML = product.price;
@@ -55,14 +49,13 @@ function descriptionProduct(product) {
     const elt = document.querySelector('#description');
     elt.innerHTML = product.description;
 }
-
+// On ajoute dans l'html une nouvelle entrée "<option></option>" pour chaque couleur récupérer dans le DOM
 function updateColors(colors) {
     let html = `<option value="">--SVP, choisissez une couleur --</option>`;
 
     colors.forEach(color => {
       html = html + `<option value="${color}">${color}</option>`
 })
-
   const select = document.querySelector('#colors');
   select.innerHTML = html;
 }
@@ -72,31 +65,30 @@ function addToCart() {
     const cart = getCart();
     const entry = createEntryForCart();
 
-    if (!isEntryValid(entry)) {
+    if (!isEntryValidAndDisplayErrors(entry)) {
         return;
     }
 
-    cart.push(entry);
-    // +
+    // Pour un produit de même couleur et de même id déjà présent dans le panier
+    // > on l'ajoute à la quantité existante
+    cart.forEach(item => {
+        if (entry.id === item.id && entry.color === item.color) {
+            entry.quantity = entry.quantity + item.quantity
+        }
+    });
+
+    upsertProduct(cart, entry);
+
     
     localStorage.setItem('cart', JSON.stringify(cart));
 
 }
 
-function getCart() {
-    const cartJson = localStorage.getItem('cart');
-    if (cartJson) {
-        return JSON.parse(cartJson);
-    }
-    return [];
-
-    // return cartJson ? JSON.parse(cartJson) : [];
-}
-
+// On spécifie les valeurs du produit qu'on ajoute au panier
 function createEntryForCart() {
     const color = document.querySelector('#colors').value;
-    const quantity = document.querySelector('#quantity').value;
-
+    const quantity = parseInt(document.querySelector('#quantity').value, 10);
+    
     return {
         id,
         color,
@@ -104,15 +96,39 @@ function createEntryForCart() {
     };   
 }
 
-function isEntryValid(entry) {
-    if (entry.quantity == 0) {
-        return false;
+function isEntryValidAndDisplayErrors(entry) {
+    const errors = [];
+
+    if (entry.quantity == 0 || entry.quantity < 0 || isNaN(entry.quantity)) {
+        errors.push('Quantité saisie incorrecte')
     }
 
     if (entry.color == '') {
+        errors.push('Couleur manquante');
+    }
+
+    if (errors.length > 0) {
+        alert(errors.join(', '));
         return false;
     }
 
+    alert('Ajout au panier réussi !')
     return true;
+    
 }
 
+// function alreadyEntry(entry) {
+//     if (entry.color&entry.id === entry.color&entry.id) {
+//         entry.quantity += entry.quantity
+//         return;
+//     }
+    
+// }
+
+function upsertProduct(array, item) {
+    const i = array.findIndex(_item => 
+        _item.id === item.id && _item.color === item.color
+    );
+    if (i > -1) array[i] = item;
+    else array.push(item);
+}
