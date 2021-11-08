@@ -1,4 +1,4 @@
-import { getCart, fetchProduct } from "./shared.js";
+import { getCartFromLocalStorage, fetchProduct, saveCartInLocalStorage } from "./shared.js";
 
 const params = new URLSearchParams(window.location.search);
 const id = params.get('id');
@@ -62,7 +62,7 @@ function updateColors(colors) {
 
 
 function addToCart() {
-    const cart = getCart();
+    const cart = getCartFromLocalStorage();
     const entry = createEntryForCart();
 
     if (!isEntryValidAndDisplayErrors(entry)) {
@@ -79,9 +79,7 @@ function addToCart() {
 
     upsertProduct(cart, entry);
 
-    
-    localStorage.setItem('cart', JSON.stringify(cart));
-
+    saveCartInLocalStorage(cart);
 }
 
 // On spécifie les valeurs du produit qu'on ajoute au panier
