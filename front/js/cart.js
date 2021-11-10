@@ -4,6 +4,9 @@ let products = [];
 const cart = getCartFromLocalStorage();
 refreshCart(cart);
 
+document.querySelector('#order').addEventListener('click', (e) => order(e));
+
+
 // const removeAProductButton = document.querySelector('.deleteItem');
 // removeAProductButton.addEventListener('click', () => removeAProduct());
 // function storageAvailable(type) {
@@ -140,3 +143,41 @@ function updateTotal(select) {
 
 }
 
+async function order(event) {
+    event.preventDefault();
+
+    const firstName = document.querySelector('#firstName').value;
+    const lastName = document.querySelector('#lastName').value;
+    const address = document.querySelector('#address').value;
+    const city = document.querySelector('#city').value;
+    const email = document.querySelector('#email').value;
+    const products = getCartFromLocalStorage().map(product => product.id);
+
+    if (products.length < 1) {
+        alert("Votre panier est vide. Veuillez ajouter des articles pour commander.");
+    }
+
+    const contact = { firstName, lastName, address, city, email };
+    const body = {contact, products};
+
+    const resOrder = await fetch("http://localhost:3000/api/products/order", {
+        method: "POST",
+        headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(body)
+      })
+        .then(function(res) {
+            if (res.ok) {
+                return res.json();
+            }
+        })
+        .catch(function(err) {
+            console.error('There is an error on the request.');
+        });
+
+    saveCartInLocalStorage([]);
+
+    document.location = './confirmation.html?orderId=' + resOrder.orderId;
+}
